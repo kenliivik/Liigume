@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeskBreak | Stretch Timer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -12,15 +15,13 @@
     <main id="app-container" class="app-shell">
 
         <header class="app-header">
-            <div class="app-header-top">
-                <h1 class="app-title">
-                    <i data-lucide="coffee" class="icon-brand"></i> DeskBreak
-                </h1>
-                <span id="progress-text" class="progress-label">
-                    Exercise 1 of 10
-                </span>
-            </div>
+            <h1 class="app-title">
+                <i data-lucide="coffee" class="icon-brand"></i> DeskBreak
+            </h1>
             <div id="progress-bar" class="progress-bar"></div>
+            <span id="progress-text" class="progress-label">
+                1/10
+            </span>
         </header>
 
         <div id="active-view" class="stage transition-smooth">
@@ -30,11 +31,17 @@
                     Neck & Shoulder Release
                 </h2>
 
-                <div class="exercise-visual" id="icon-container">
-                    <img id="exercise-image" src="" alt="" class="exercise-image" onerror="handleImageError(this)">
-                    <div id="image-fallback" class="exercise-image-fallback hidden">
-                        <i data-lucide="image-off" class="icon-lg"></i>
-                        <span id="image-fallback-path" class="fallback-path"></span>
+                <div class="ring-wrap" id="icon-container">
+                    <svg class="ring-svg" viewBox="0 0 200 200">
+                        <circle class="ring-track" cx="100" cy="100" r="92"></circle>
+                        <circle id="ring-progress" class="ring-progress" cx="100" cy="100" r="92"></circle>
+                    </svg>
+                    <div class="ring-image-mask">
+                        <img id="exercise-image" src="" alt="" class="exercise-image" onerror="handleImageError(this)">
+                        <div id="image-fallback" class="exercise-image-fallback hidden">
+                            <i data-lucide="image-off" class="icon-lg"></i>
+                            <span id="image-fallback-path" class="fallback-path"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -63,7 +70,7 @@
             <div class="next-up-card">
                 <div class="next-up-left">
                     <div class="next-up-icon-wrap">
-                        <i data-lucide="arrow-right" class="icon-sm" style="color: var(--slate-400);"></i>
+                        <i data-lucide="arrow-right" class="icon-sm" style="color: var(--foreground-subtle);"></i>
                     </div>
                     <div>
                         <p class="next-up-label">Up Next</p>
@@ -113,6 +120,10 @@
         let timerInterval = null;
         let currentImageIndex = 0; // which image (0 or 1) is currently shown for this exercise
 
+        // Radial ring geometry (matches r="92" in the SVG markup)
+        const RING_RADIUS = 92;
+        const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
         // DOM Elements
         const DOM = {
             progressText: document.getElementById('progress-text'),
@@ -125,6 +136,7 @@
             exerciseImage: document.getElementById('exercise-image'),
             imageFallback: document.getElementById('image-fallback'),
             imageFallbackPath: document.getElementById('image-fallback-path'),
+            ringProgress: document.getElementById('ring-progress'),
             timerDisplay: document.getElementById('timer-display'),
             playIcon: document.getElementById('play-icon'),
             pauseIcon: document.getElementById('pause-icon'),
@@ -134,6 +146,7 @@
 
         // Initialize App
         function init() {
+            DOM.ringProgress.style.strokeDasharray = `${RING_CIRCUMFERENCE}`;
             renderSegments();
             updateUI();
             lucide.createIcons();
@@ -157,6 +170,16 @@
             const m = Math.floor(seconds / 60).toString().padStart(2, '0');
             const s = (seconds % 60).toString().padStart(2, '0');
             return `${m}:${s}`;
+        }
+
+        // Update the radial ring to reflect time remaining for the current exercise.
+        // The ring starts full and drains away as time elapses; the last 5s
+        // switch to the amber "urgent" color as a subtle wrap-up cue.
+        function updateRing(duration, remaining) {
+            const remainingFraction = Math.max(0, remaining / duration);
+            const offset = RING_CIRCUMFERENCE * (1 - remainingFraction);
+            DOM.ringProgress.style.strokeDashoffset = `${offset}`;
+            DOM.ringProgress.classList.toggle('is-urgent', remaining <= 5 && remaining > 0);
         }
 
         // Display a given image (by index) for an exercise, with a graceful
@@ -187,12 +210,13 @@
             const currentEx = exercises[currentIndex];
 
             // Header
-            DOM.progressText.textContent = `Exercise ${currentIndex + 1} of ${exercises.length}`;
+            DOM.progressText.textContent = `${currentIndex + 1}/${exercises.length}`;
             renderSegments();
 
             // Main Stage
             DOM.exerciseName.textContent = currentEx.name;
             DOM.timerDisplay.textContent = formatTime(timeLeft);
+            updateRing(currentEx.duration, timeLeft);
 
             // Show the current illustration image for this exercise
             showImage(currentEx, currentImageIndex);
@@ -232,10 +256,11 @@
         function tick() {
             if (timeLeft > 0) {
                 timeLeft--;
+                const currentEx = exercises[currentIndex];
                 DOM.timerDisplay.textContent = formatTime(timeLeft);
+                updateRing(currentEx.duration, timeLeft);
 
                 // Switch to the second image partway through, for exercises that have one
-                const currentEx = exercises[currentIndex];
                 if (currentEx.images.length > 1 && currentImageIndex === 0) {
                     const elapsed = currentEx.duration - timeLeft;
                     if (elapsed >= Math.ceil(currentEx.duration / 2)) {
@@ -281,8 +306,10 @@
             if (!isPlaying) {
                 updateUI();
             } else {
+                const currentEx = exercises[currentIndex];
                 DOM.timerDisplay.textContent = formatTime(timeLeft);
-                showImage(exercises[currentIndex], currentImageIndex);
+                updateRing(currentEx.duration, timeLeft);
+                showImage(currentEx, currentImageIndex);
             }
         }
 
