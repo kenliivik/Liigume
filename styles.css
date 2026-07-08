@@ -1,0 +1,393 @@
+/* ==========================================================================
+   DeskBreak — hand-written CSS (no Tailwind, no build step)
+   ========================================================================== */
+
+:root {
+  --brand-50: #f0fdfa;
+  --brand-100: #ccfbf1;
+  --brand-500: #14b8a6;
+  --brand-600: #0d9488;
+  --brand-900: #134e4a;
+
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--slate-50);
+  color: var(--slate-800);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--brand-100);
+}
+
+/* ---- generic state utilities (referenced directly by JS) ---- */
+.hidden { display: none !important; }
+.flex { display: flex !important; }
+.opacity-0 { opacity: 0; }
+.pointer-events-none { pointer-events: none; }
+
+/* ---- shared transition + animation ---- */
+.transition-smooth {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pulse-once {
+  animation: pulse-quick 0.5s ease-out;
+}
+@keyframes pulse-quick {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ---- app shell ---- */
+.app-shell {
+  width: 100%;
+  max-width: 42rem;
+  padding: 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  justify-content: space-between;
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    height: auto;
+    padding: 2rem 1.5rem;
+  }
+}
+
+/* ---- header ---- */
+.app-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.app-header.opacity-0 { opacity: 0; }
+
+.app-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app-title {
+  font-size: 1.0rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--slate-900);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-brand { color: var(--brand-500); }
+
+.progress-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.progress-bar {
+  width: 100%;
+  display: flex;
+  gap: 0.5rem;
+  height: 0.175rem;
+}
+
+.progress-segment {
+  flex: 1 1 0;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--slate-200);
+  transition: background-color 0.5s;
+}
+.progress-segment.is-done { background: var(--brand-500); }
+.progress-segment.is-current { background: var(--brand-500); opacity: 0.6; }
+
+/* ---- stage (active exercise view) ---- */
+.stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1.0rem;
+  padding: 0.1rem 0;
+  min-height: 0;
+}
+
+.stage-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  text-align: center;
+}
+
+.exercise-name {
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: var(--slate-800);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  padding: 0 0.25rem;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .exercise-name { font-size: 1.875rem; min-height: 64px; }
+}
+
+.exercise-visual {
+  width: 8.5rem;
+  height: 8.5rem;
+  background: #fff;
+  border-radius: 1.5rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  border: 1px solid var(--slate-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .exercise-visual { width: 11rem; height: 11rem; }
+}
+
+.exercise-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.5rem;
+  border-radius: 1.15rem;
+  transition: opacity 0.3s;
+}
+
+.exercise-image-fallback {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--slate-300);
+  text-align: center;
+  padding: 0 1rem;
+  position: absolute;
+  inset: 0;
+}
+
+.fallback-path {
+  font-size: 11px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  word-break: break-all;
+}
+
+.timer-wrap {
+  text-align: center;
+  width: 100%;
+}
+
+.timer-display {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--slate-900);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+@media (min-width: 768px) {
+  .timer-display { font-size: 5.5rem; }
+}
+
+/* ---- controls ---- */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.25rem;
+}
+
+.btn {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+.btn:focus { outline: none; }
+
+.btn-ghost {
+  padding: 0.75rem;
+  border-radius: 999px;
+  color: var(--slate-400);
+  background: transparent;
+  transition: color 0.2s, background-color 0.2s;
+}
+.btn-ghost:hover {
+  color: var(--slate-700);
+  background: var(--slate-200);
+}
+
+.btn-primary {
+  width: 4.25rem;
+  height: 4.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--slate-900);
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  transition: background-color 0.2s, transform 0.1s;
+}
+.btn-primary:hover { background: var(--slate-800); }
+.btn-primary:active { transform: scale(0.95); }
+
+.icon-sm { width: 1.5rem; height: 1.5rem; }
+.icon-md { width: 1.25rem; height: 1.25rem; }
+.icon-lg { width: 2rem; height: 2rem; margin-left: 0.25rem; }
+.icon-lg.pause { margin-left: 0; }
+.icon-xl { width: 4rem; height: 4rem; }
+
+/* ---- up next footer ---- */
+.next-up {
+  width: 100%;
+}
+
+.next-up-card {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--slate-100);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+.next-up-card:hover { opacity: 1; }
+
+.next-up-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.next-up-icon-wrap {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  background: var(--slate-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.next-up-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.125rem 0;
+}
+
+.next-up-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--slate-700);
+  margin: 0;
+}
+
+.next-up-time {
+  font-size: 0.875rem;
+  color: var(--slate-400);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* ---- complete view ---- */
+.complete {
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2rem;
+}
+
+.complete-icon-wrap {
+  width: 8rem;
+  height: 8rem;
+  background: var(--brand-50);
+  border-radius: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.text-brand { color: var(--brand-500); }
+
+.complete-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--slate-900);
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.02em;
+}
+
+.complete-text {
+  font-size: 1.125rem;
+  color: var(--slate-500);
+  max-width: 24rem;
+  margin: 0 auto;
+}
+
+.btn-restart {
+  margin-top: 2rem;
+  padding: 1rem 2rem;
+  background: var(--slate-900);
+  color: #fff;
+  border-radius: 999px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s, transform 0.1s;
+}
+.btn-restart:hover { background: var(--slate-800); }
+.btn-restart:active { transform: scale(0.95); }
